@@ -1,0 +1,101 @@
+# ─────────────────────────────────────────────────────────────
+# SECRETS — this repo is PUBLIC. Nothing below ever gets committed.
+# A secret committed and later deleted still lives in git history.
+# ─────────────────────────────────────────────────────────────
+*.jks
+*.keystore
+*.p12
+*.pem
+*.key
+key.properties
+android/key.properties
+app/android/key.properties
+.env
+.env.*
+!.env.example
+secrets.json
+service-account*.json
+google-services.json
+
+# Never commit real user data or captured messages
+**/sms_dump*
+**/*.sms.json
+**/testdata/real/
+fixtures/real/
+
+# ─────────────────────────────────────────────────────────────
+# Flutter / Dart
+# ─────────────────────────────────────────────────────────────
+.dart_tool/
+.packages
+.pub-cache/
+.pub/
+build/
+.flutter-plugins
+.flutter-plugins-dependencies
+*.lock.bak
+coverage/
+doc/api/
+*.g.dart.bak
+
+# Flutter generated
+**/generated_plugin_registrant.dart
+lib/generated/
+
+# ─────────────────────────────────────────────────────────────
+# Android
+# ─────────────────────────────────────────────────────────────
+**/android/.gradle/
+**/android/captures/
+**/android/local.properties
+**/android/.cxx/
+**/android/app/release/
+**/android/app/debug/
+**/android/app/profile/
+*.apk
+*.aab
+*.ap_
+*.dex
+local.properties
+.gradle/
+
+# ─────────────────────────────────────────────────────────────
+# iOS / macOS (not targeted now, but keep the tree clean)
+# ─────────────────────────────────────────────────────────────
+**/ios/Pods/
+**/ios/.symlinks/
+**/ios/Flutter/Flutter.framework
+**/ios/Flutter/Generated.xcconfig
+**/ios/Flutter/flutter_export_environment.sh
+*.xcworkspace/xcuserdata/
+xcuserdata/
+
+# ─────────────────────────────────────────────────────────────
+# Python / FastAPI backend
+# ─────────────────────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+env/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+htmlcov/
+.coverage
+*.db
+*.sqlite3
+
+# ─────────────────────────────────────────────────────────────
+# Editors / OS
+# ─────────────────────────────────────────────────────────────
+.idea/
+.vscode/
+!.vscode/settings.json
+*.iml
+*.swp
+*~
+.DS_Store
+Thumbs.db
+desktop.ini
