@@ -1,0 +1,104 @@
+{
+  "version": 1,
+  "_status": "SEED. Templates below are structurally representative but must be validated against a real corpus before release. The research pass is collecting verified templates across SBI/HDFC/ICICI/Axis/Kotak/PNB/BoB/UPI apps/card issuers; expect this file to grow substantially and to be the thing that most often ships an update.",
+  "_design": {
+    "why_declarative": "Bank SMS formats change without notice. If rules are compiled into the APK, every format change needs a Play release and a week of users silently missing transactions. As data, a fix ships in minutes via the config server and the app re-parses affected messages locally.",
+    "matching": "Rules are tried in descending priority. First rule whose sender_pattern AND body_pattern both match wins. Ties broken by rule id for determinism.",
+    "named_groups": "Regex uses named capture groups. Recognized names: amount, direction_word, date, account_tail, card_tail, merchant, vpa, ref, balance.",
+    "reprocessing": "Every stored transaction records the rule id + version that produced it. When rules update, only messages whose rule changed (or that previously failed to parse) are re-run."
+  },
+  "field_schema": {
+    "id": "stable unique string, never reused",
+    "issuer": "display name of the bank/app, for UI and grouping",
+    "sender_pattern": "regex against the normalized TRAI sender header, e.g. ^[A-Z]{2}-HDFCBK[A-Z]?$",
+    "body_pattern": "regex with named groups, matched case-insensitively against the message body",
+    "direction": "debit | credit | infer  (infer reads the direction_word group)",
+    "channel": "upi | card | netbanking | atm | nach | imps_neft | cash | unknown",
+    "txn_type": "transaction | bill_reminder | balance_info | promo | otp  (only 'transaction' and 'bill_reminder' create ledger entries)",
+    "priority": "integer, higher wins",
+    "date_formats": "ordered list of patterns tried against the date group"
+  },
+  "direction_words": {
+    "debit": ["debited", "debit", "spent", "paid", "withdrawn", "sent", "purchase", "deducted", "transferred to"],
+    "credit": ["credited", "credit", "received", "deposited", "refund", "reversed", "added"]
+  },
+  "reject_patterns": {
+    "_comment": "Checked BEFORE any rule. If a message matches here it never reaches the parser, no matter which bank header it carries. This is what stops the classic 'OTP containing an amount' and 'spend Rs 5000 and get cashback' false positives that plague competitors.",
+    "patterns": [
+      "\\bOTP\\b",
+      "\\bone[ -]?time[ -]?password\\b",
+      "do not share",
+      "\\bnever share\\b",
+      "\\bwill expire in\\b",
+      "\\boffer\\b.*\\bvalid till\\b",
+      "\\bcongratulations\\b",
+      "\\bpre-?approved\\b",
+      "\\beligible for\\b",
+      "\\bclick (here|below)\\b",
+      "\\bapply now\\b",
+      "\\bT&C apply\\b",
+      "\\bget \\d+% (off|cashback)\\b",
+      "\\bwin \\b",
+      "\\bfailed\\b.*\\btransaction\\b",
+      "\\bdeclined\\b"
+    ]
+  },
+  "rules": [
+    {
+      "id": "generic.upi.debit.v1",
+      "issuer": "Generic UPI",
+      "sender_pattern": "^[A-Z]{2}-[A-Z]{6}[A-Z]?$",
+      "body_pattern": "(?:rs\\.?|inr|₹)\\s*(?<amount>[\\d,]+(?:\\.\\d{1,2})?)\\s+(?<direction_word>debited|paid|sent)\\s+from\\s+(?:a/c|ac|account)\\s*(?:no\\.?)?\\s*[x*]*(?<account_tail>\\d{3,6}).{0,40}?(?:to|at)\\s+(?<merchant>[A-Za-z0-9@.\\-_ &]{2,48}?)(?:\\s+on\\s+(?<date>[\\d]{1,2}[-/][\\d]{1,2}[-/][\\d]{2,4}))?.{0,60}?(?:ref(?:erence)?(?:\\s*no)?\\.?\\s*[:.]?\\s*(?<ref>\\d{6,20}))?",
+      "direction": "debit",
+      "channel": "upi",
+      "txn_type": "transaction",
+      "priority": 50,
+      "date_formats": ["dd-MM-yy", "dd-MM-yyyy", "dd/MM/yy", "dd/MM/yyyy"]
+    },
+    {
+      "id": "generic.account.credit.v1",
+      "issuer": "Generic Bank",
+      "sender_pattern": "^[A-Z]{2}-[A-Z]{6}[A-Z]?$",
+      "body_pattern": "(?:rs\\.?|inr|₹)\\s*(?<amount>[\\d,]+(?:\\.\\d{1,2})?)\\s+(?<direction_word>credited)\\s+to\\s+(?:a/c|ac|account)\\s*(?:no\\.?)?\\s*[x*]*(?<account_tail>\\d{3,6}).{0,80}?(?:avl(?:\\.|able)?\\s*bal(?:ance)?\\.?\\s*(?:is)?\\s*(?:rs\\.?|inr|₹)?\\s*(?<balance>[\\d,]+(?:\\.\\d{1,2})?))?",
+      "direction": "credit",
+      "channel": "netbanking",
+      "txn_type": "transaction",
+      "priority": 50,
+      "date_formats": ["dd-MM-yy", "dd-MM-yyyy"]
+    },
+    {
+      "id": "generic.card.spend.v1",
+      "issuer": "Generic Card",
+      "sender_pattern": "^[A-Z]{2}-[A-Z]{6}[A-Z]?$",
+      "body_pattern": "(?:rs\\.?|inr|₹)\\s*(?<amount>[\\d,]+(?:\\.\\d{1,2})?)\\s+(?:spent|used)\\s+(?:on|using)\\s+(?:your\\s+)?(?<card_kind>credit|debit)\\s+card\\s*(?:no\\.?)?\\s*[x*]*(?<card_tail>\\d{3,6})\\s+(?:at|on)\\s+(?<merchant>[A-Za-z0-9.\\-_ &*]{2,48}?)(?:\\s+on\\s+(?<date>[\\d]{1,2}[-/][A-Za-z\\d]{2,4}[-/][\\d]{2,4}))?",
+      "direction": "debit",
+      "channel": "card",
+      "txn_type": "transaction",
+      "priority": 60,
+      "date_formats": ["dd-MM-yy", "dd-MMM-yy", "dd/MM/yyyy"]
+    },
+    {
+      "id": "generic.atm.withdrawal.v1",
+      "issuer": "Generic Bank",
+      "sender_pattern": "^[A-Z]{2}-[A-Z]{6}[A-Z]?$",
+      "body_pattern": "(?:rs\\.?|inr|₹)\\s*(?<amount>[\\d,]+(?:\\.\\d{1,2})?)\\s+(?:withdrawn|debited).{0,30}?\\batm\\b.{0,40}?(?:a/c|ac|card)\\s*[x*]*(?<account_tail>\\d{3,6})",
+      "direction": "debit",
+      "channel": "atm",
+      "txn_type": "transaction",
+      "priority": 70,
+      "forced_category": "transfers/atm_withdrawal",
+      "_comment": "Forced because an ATM withdrawal is a transfer into the Cash account, never an expense."
+    },
+    {
+      "id": "generic.bill.reminder.v1",
+      "issuer": "Generic Biller",
+      "sender_pattern": "^[A-Z]{2}-[A-Z]{6}[A-Z]?$",
+      "body_pattern": "(?:bill|amount|payment)\\s+(?:of\\s+)?(?:rs\\.?|inr|₹)\\s*(?<amount>[\\d,]+(?:\\.\\d{1,2})?)\\s+.{0,40}?\\bdue\\b\\s*(?:on|by)?\\s*(?<date>[\\d]{1,2}[-/][A-Za-z\\d]{2,4}(?:[-/][\\d]{2,4})?)",
+      "direction": "debit",
+      "channel": "unknown",
+      "txn_type": "bill_reminder",
+      "priority": 80,
+      "_comment": "Creates a Bill in 'due' state, NOT a ledger entry. The ledger entry appears only when a matching payment SMS arrives - see the bill-matching algorithm."
+    }
+  ]
+}

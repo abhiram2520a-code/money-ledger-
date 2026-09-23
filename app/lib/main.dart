@@ -1,121 +1,130 @@
+/// App entry.
+///
+/// Three things happen here and nothing else: the bindings come up, the
+/// composition root in `di.dart` builds and loads every module, and the
+/// result is handed to the UI through a `ProviderScope`.
+///
+/// **There is no network call on this path.** The rules pack is compiled into
+/// the APK, so the app parses, categorises, stores and reports with no
+/// connection at all - on first launch, on a phone that never has one, and
+/// with the config server permanently gone. The only method in the whole app
+/// that can open a socket is `RulesProvider.checkForUpdate()`, which the user
+/// triggers from Settings and which only ever supplies a *newer* rules pack.
+library;
+
+import 'dart:async';
+
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-void main() {
-  runApp(const MyApp());
-}
+import 'core/result.dart';
+import 'di.dart';
+import 'ui/theme/app_root.dart';
+import 'ui/theme/app_theme.dart';
 
-class MyApp extends StatelessWidget {
-  const MyApp({super.key});
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
 
-  // This widget is the root of your application.
-  @override
-  Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Flutter Demo',
-      theme: ThemeData(
-        // This is the theme of your application.
-        //
-        // TRY THIS: Try running your application with "flutter run". You'll see
-        // the application has a purple toolbar. Then, without quitting the app,
-        // try changing the seedColor in the colorScheme below to Colors.green
-        // and then invoke "hot reload" (save your changes or press the "hot
-        // reload" button in a Flutter-supported IDE, or press "r" if you used
-        // the command line to start the app).
-        //
-        // Notice that the counter didn't reset back to zero; the application
-        // state is not lost during the reload. To reset the state, use hot
-        // restart instead.
-        //
-        // This works for code too, not just values: Most code changes can be
-        // tested with just a hot reload.
-        colorScheme: .fromSeed(seedColor: Colors.deepPurple),
-      ),
-      home: const MyHomePage(title: 'Flutter Demo Home Page'),
-    );
+  final Result<AppDependencies> boot = await bootstrapAppDependencies();
+
+  switch (boot) {
+    case Ok<AppDependencies>(value: final AppDependencies deps):
+      runApp(
+        ProviderScope(
+          overrides: deps.overrides,
+          child: const _LedgerRoot(),
+        ),
+      );
+    case Err<AppDependencies>(error: final AppError error):
+      // Startup can only fail for two reasons, and both are the build's fault
+      // rather than the device's: a rules pack missing from the APK, or a
+      // database that will not open. Say which, rather than showing a white
+      // screen or a ledger that appears to be empty.
+      runApp(_StartupFailureApp(error: error));
   }
 }
 
-class MyHomePage extends StatefulWidget {
-  const MyHomePage({super.key, required this.title});
-
-  // This widget is the home page of your application. It is stateful, meaning
-  // that it has a State object (defined below) that contains fields that affect
-  // how it looks.
-
-  // This class is the configuration for the state. It holds the values (in this
-  // case the title) provided by the parent (in this case the App widget) and
-  // used by the build method of the State. Fields in a Widget subclass are
-  // always marked "final".
-
-  final String title;
+/// Wraps the UI and starts ingestion once, after the first frame.
+///
+/// This lives here rather than inside a screen because ingestion is not a
+/// screen's concern: the live receiver and the catch-up scan must run whether
+/// the user is looking at the dashboard, the settings page or nothing at all.
+class _LedgerRoot extends ConsumerStatefulWidget {
+  const _LedgerRoot();
 
   @override
-  State<MyHomePage> createState() => _MyHomePageState();
+  ConsumerState<_LedgerRoot> createState() => _LedgerRootState();
 }
 
-class _MyHomePageState extends State<MyHomePage> {
-  int _counter = 0;
-
-  void _incrementCounter() {
-    setState(() {
-      // This call to setState tells the Flutter framework that something has
-      // changed in this State, which causes it to rerun the build method below
-      // so that the display can reflect the updated values. If we changed
-      // _counter without calling setState(), then the build method would not be
-      // called again, and so nothing would appear to happen.
-      _counter++;
+class _LedgerRootState extends ConsumerState<_LedgerRoot> {
+  @override
+  void initState() {
+    super.initState();
+    // After the first frame, so the dashboard paints immediately instead of
+    // waiting on a scan of a 20,000-message inbox.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      unawaited(ref.read(ingestServiceProvider).startIfPermitted());
     });
   }
 
   @override
+  Widget build(BuildContext context) => const LedgerApp();
+}
+
+/// The one screen that exists outside the app's own theme system, because it
+/// has to work when the thing that failed to load might be the theme's own
+/// rules pack.
+class _StartupFailureApp extends StatelessWidget {
+  const _StartupFailureApp({required this.error});
+
+  final AppError error;
+
+  @override
   Widget build(BuildContext context) {
-    // This method is rerun every time setState is called, for instance as done
-    // by the _incrementCounter method above.
-    //
-    // The Flutter framework has been optimized to make rerunning build methods
-    // fast, so that you can just rebuild anything that needs updating rather
-    // than having to individually change instances of widgets.
-    return Scaffold(
-      appBar: AppBar(
-        // TRY THIS: Try changing the color here to a specific color (to
-        // Colors.amber, perhaps?) and trigger a hot reload to see the AppBar
-        // change color while the other colors stay the same.
-        backgroundColor: Theme.of(context).colorScheme.inversePrimary,
-        // Here we take the value from the MyHomePage object that was created by
-        // the App.build method, and use it to set our appbar title.
-        title: Text(widget.title),
-      ),
-      body: Center(
-        // Center is a layout widget. It takes a single child and positions it
-        // in the middle of the parent.
-        child: Column(
-          // Column is also a layout widget. It takes a list of children and
-          // arranges them vertically. By default, it sizes itself to fit its
-          // children horizontally, and tries to be as tall as its parent.
-          //
-          // Column has various properties to control how it sizes itself and
-          // how it positions its children. Here we use mainAxisAlignment to
-          // center the children vertically; the main axis here is the vertical
-          // axis because Columns are vertical (the cross axis would be
-          // horizontal).
-          //
-          // TRY THIS: Invoke "debug painting" (choose the "Toggle Debug Paint"
-          // action in the IDE, or press "p" in the console), to see the
-          // wireframe for each widget.
-          mainAxisAlignment: .center,
-          children: [
-            const Text('You have pushed the button this many times:'),
-            Text(
-              '$_counter',
-              style: Theme.of(context).textTheme.headlineMedium,
+    return MaterialApp(
+      title: 'Ledger',
+      debugShowCheckedModeBanner: false,
+      theme: AppTheme.light(),
+      darkTheme: AppTheme.dark(),
+      themeMode: ThemeMode.system,
+      home: Scaffold(
+        body: SafeArea(
+          child: Center(
+            child: Padding(
+              padding: const EdgeInsets.all(24),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: <Widget>[
+                  Icon(
+                    Icons.report_gmailerrorred_outlined,
+                    size: 48,
+                    color: Theme.of(context).colorScheme.error,
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    'Ledger could not start',
+                    style: Theme.of(context).textTheme.titleLarge,
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    error.message,
+                    style: Theme.of(context).textTheme.bodyMedium,
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'This is a problem with this build of the app, not with '
+                    'your phone or your connection. Reinstalling the app is '
+                    'the fix.',
+                    style: Theme.of(context).textTheme.bodySmall,
+                    textAlign: TextAlign.center,
+                  ),
+                ],
+              ),
             ),
-          ],
+          ),
         ),
-      ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: _incrementCounter,
-        tooltip: 'Increment',
-        child: const Icon(Icons.add),
       ),
     );
   }

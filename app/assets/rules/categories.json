@@ -1,0 +1,277 @@
+{
+  "version": 1,
+  "_comment": "Category taxonomy. 'kind' is load-bearing: only kind=expense counts as spending. Transfers (self-transfers, credit-card bill payments, ATM withdrawals, wallet top-ups) and investments are movements of the user's own money, NOT expenses. Counting them is the single most common bug in Indian expense trackers - it is why users see an inflated spend total and stop trusting the app.",
+  "kinds": {
+    "expense": "Money left the user's net worth. Counts toward spending totals and budgets.",
+    "income": "Money entered the user's net worth.",
+    "transfer": "Money moved between the user's own accounts (incl. cash). Net zero. Never counted as spend.",
+    "investment": "Money moved into an asset the user still owns. Net zero for spend; tracked separately as savings rate."
+  },
+  "categories": [
+    {
+      "id": "food_dining",
+      "name": "Food & Dining",
+      "kind": "expense",
+      "icon": "restaurant",
+      "color": "#F2994A",
+      "subcategories": [
+        { "id": "food_delivery", "name": "Food Delivery" },
+        { "id": "restaurants", "name": "Restaurants" },
+        { "id": "cafe", "name": "Cafes & Coffee" },
+        { "id": "bars", "name": "Bars & Alcohol" },
+        { "id": "canteen", "name": "Office & Canteen" }
+      ]
+    },
+    {
+      "id": "groceries",
+      "name": "Groceries",
+      "kind": "expense",
+      "icon": "shopping_basket",
+      "color": "#6FCF97",
+      "subcategories": [
+        { "id": "quick_commerce", "name": "Quick Commerce" },
+        { "id": "supermarket", "name": "Supermarket" },
+        { "id": "kirana", "name": "Kirana & Local" },
+        { "id": "meat_produce", "name": "Meat & Produce" }
+      ]
+    },
+    {
+      "id": "transport",
+      "name": "Transport",
+      "kind": "expense",
+      "icon": "directions_car",
+      "color": "#56CCF2",
+      "subcategories": [
+        { "id": "cab", "name": "Cabs & Autos" },
+        { "id": "fuel", "name": "Fuel" },
+        { "id": "public_transit", "name": "Metro & Bus" },
+        { "id": "parking_tolls", "name": "Parking & Tolls" },
+        { "id": "vehicle_maintenance", "name": "Vehicle Service" }
+      ]
+    },
+    {
+      "id": "travel",
+      "name": "Travel",
+      "kind": "expense",
+      "icon": "flight",
+      "color": "#2D9CDB",
+      "subcategories": [
+        { "id": "flights", "name": "Flights" },
+        { "id": "trains", "name": "Trains" },
+        { "id": "intercity_bus", "name": "Intercity Bus" },
+        { "id": "hotels", "name": "Hotels & Stays" },
+        { "id": "holiday_packages", "name": "Holiday Packages" }
+      ]
+    },
+    {
+      "id": "shopping",
+      "name": "Shopping",
+      "kind": "expense",
+      "icon": "shopping_bag",
+      "color": "#BB6BD9",
+      "subcategories": [
+        { "id": "ecommerce", "name": "Online Shopping" },
+        { "id": "clothing", "name": "Clothing & Footwear" },
+        { "id": "electronics", "name": "Electronics" },
+        { "id": "home_furniture", "name": "Home & Furniture" },
+        { "id": "beauty", "name": "Beauty & Personal Care" }
+      ]
+    },
+    {
+      "id": "entertainment",
+      "name": "Entertainment",
+      "kind": "expense",
+      "icon": "movie",
+      "color": "#EB5757",
+      "subcategories": [
+        { "id": "streaming", "name": "Streaming" },
+        { "id": "movies", "name": "Movies & Theatre" },
+        { "id": "gaming", "name": "Gaming" },
+        { "id": "events", "name": "Events & Concerts" },
+        { "id": "hobbies", "name": "Hobbies" }
+      ]
+    },
+    {
+      "id": "bills_utilities",
+      "name": "Bills & Utilities",
+      "kind": "expense",
+      "icon": "receipt_long",
+      "color": "#F2C94C",
+      "subcategories": [
+        { "id": "electricity", "name": "Electricity" },
+        { "id": "mobile", "name": "Mobile" },
+        { "id": "broadband", "name": "Broadband & DTH" },
+        { "id": "water_gas", "name": "Water & Gas" },
+        { "id": "maintenance", "name": "Society Maintenance" }
+      ]
+    },
+    {
+      "id": "health",
+      "name": "Health",
+      "kind": "expense",
+      "icon": "favorite",
+      "color": "#EB5F8D",
+      "subcategories": [
+        { "id": "pharmacy", "name": "Pharmacy" },
+        { "id": "doctor", "name": "Doctor & Hospital" },
+        { "id": "diagnostics", "name": "Labs & Diagnostics" },
+        { "id": "fitness", "name": "Fitness" }
+      ]
+    },
+    {
+      "id": "education",
+      "name": "Education",
+      "kind": "expense",
+      "icon": "school",
+      "color": "#9B51E0",
+      "subcategories": [
+        { "id": "tuition_fees", "name": "School & College Fees" },
+        { "id": "courses", "name": "Courses & Coaching" },
+        { "id": "books", "name": "Books & Supplies" }
+      ]
+    },
+    {
+      "id": "rent",
+      "name": "Rent",
+      "kind": "expense",
+      "icon": "home",
+      "color": "#828282",
+      "subcategories": [
+        { "id": "house_rent", "name": "House Rent" },
+        { "id": "deposit", "name": "Deposit" }
+      ]
+    },
+    {
+      "id": "emi_loans",
+      "name": "EMI & Loans",
+      "kind": "expense",
+      "icon": "account_balance",
+      "color": "#E2725B",
+      "_comment": "Only the INTEREST portion is strictly an expense, but SMS never splits principal/interest. Treated wholly as expense; revisit if statement import lands.",
+      "subcategories": [
+        { "id": "home_loan", "name": "Home Loan" },
+        { "id": "personal_loan", "name": "Personal Loan" },
+        { "id": "vehicle_loan", "name": "Vehicle Loan" },
+        { "id": "consumer_emi", "name": "Consumer EMI" }
+      ]
+    },
+    {
+      "id": "insurance",
+      "name": "Insurance",
+      "kind": "expense",
+      "icon": "shield",
+      "color": "#219653",
+      "subcategories": [
+        { "id": "life_insurance", "name": "Life" },
+        { "id": "health_insurance", "name": "Health" },
+        { "id": "vehicle_insurance", "name": "Vehicle" },
+        { "id": "general", "name": "Other Insurance" }
+      ]
+    },
+    {
+      "id": "fees_charges",
+      "name": "Fees & Charges",
+      "kind": "expense",
+      "icon": "gavel",
+      "color": "#B0603A",
+      "_comment": "Surfacing these separately is a genuine user win - most people never notice how much they pay in bank charges per year.",
+      "subcategories": [
+        { "id": "bank_charges", "name": "Bank Charges" },
+        { "id": "atm_fee", "name": "ATM Fees" },
+        { "id": "late_fee", "name": "Late Fees & Penalties" },
+        { "id": "taxes", "name": "Tax & TDS" },
+        { "id": "forex_markup", "name": "Forex Markup" }
+      ]
+    },
+    {
+      "id": "personal_family",
+      "name": "Personal & Family",
+      "kind": "expense",
+      "icon": "group",
+      "color": "#F2994A",
+      "subcategories": [
+        { "id": "gifts", "name": "Gifts" },
+        { "id": "donations", "name": "Donations" },
+        { "id": "family_support", "name": "Family Support" },
+        { "id": "pets", "name": "Pets" },
+        { "id": "childcare", "name": "Childcare" }
+      ]
+    },
+    {
+      "id": "miscellaneous",
+      "name": "Miscellaneous",
+      "kind": "expense",
+      "icon": "more_horiz",
+      "color": "#90A4AE",
+      "_comment": "The honest bucket. Distinct from UNCATEGORIZED: miscellaneous means the user decided it does not fit; uncategorized means the app does not yet know.",
+      "subcategories": [
+        { "id": "other_expense", "name": "Other" }
+      ]
+    },
+    {
+      "id": "income",
+      "name": "Income",
+      "kind": "income",
+      "icon": "trending_up",
+      "color": "#27AE60",
+      "subcategories": [
+        { "id": "salary", "name": "Salary" },
+        { "id": "freelance", "name": "Freelance & Business" },
+        { "id": "interest", "name": "Interest" },
+        { "id": "dividend", "name": "Dividends" },
+        { "id": "refund", "name": "Refunds" },
+        { "id": "cashback", "name": "Cashback & Rewards" },
+        { "id": "reimbursement", "name": "Reimbursement" },
+        { "id": "other_income", "name": "Other Income" }
+      ]
+    },
+    {
+      "id": "transfers",
+      "name": "Transfers",
+      "kind": "transfer",
+      "icon": "swap_horiz",
+      "color": "#4F4F4F",
+      "_comment": "NEVER counted as spending. credit_card_payment is the critical one: the card SPEND was already booked as an expense, so booking the bill payment again would double-count it.",
+      "subcategories": [
+        { "id": "self_transfer", "name": "Between My Accounts" },
+        { "id": "credit_card_payment", "name": "Credit Card Payment" },
+        { "id": "atm_withdrawal", "name": "ATM Withdrawal" },
+        { "id": "wallet_topup", "name": "Wallet Top-up" },
+        { "id": "p2p_sent", "name": "Sent to Person" },
+        { "id": "p2p_received", "name": "Received from Person" },
+        { "id": "loan_repayment_principal", "name": "Loan Principal" }
+      ]
+    },
+    {
+      "id": "investments",
+      "name": "Investments",
+      "kind": "investment",
+      "icon": "savings",
+      "color": "#1F8A70",
+      "_comment": "Money the user still owns. Excluded from spend; feeds the savings-rate metric instead.",
+      "subcategories": [
+        { "id": "mutual_fund_sip", "name": "SIP" },
+        { "id": "mutual_fund_lumpsum", "name": "Mutual Funds" },
+        { "id": "stocks", "name": "Stocks & Broking" },
+        { "id": "fd_rd", "name": "FD & RD" },
+        { "id": "gold", "name": "Gold" },
+        { "id": "nps_ppf", "name": "NPS & PPF" },
+        { "id": "crypto", "name": "Crypto" }
+      ]
+    }
+  ],
+  "special": {
+    "uncategorized": {
+      "id": "uncategorized",
+      "name": "Uncategorized",
+      "kind": "expense",
+      "icon": "help_outline",
+      "color": "#BDBDBD",
+      "_comment": "Not a real category - a queue. Every transaction that lands here is a question waiting for one tap, and that tap becomes a permanent user rule. Shown as a badge on the home screen, never silently buried."
+    }
+  },
+  "notes": {
+    "subscriptions": "Deliberately NOT a category. A Netflix charge is Entertainment and a gym charge is Health; both are also recurring. Recurrence is a FLAG on the transaction/series, not a bucket - otherwise every recurring spend gets pulled out of the category the user actually wants to budget against.",
+    "cash": "An ATM withdrawal is a transfer into a virtual Cash account, not an expense. What the cash is then spent on is invisible to SMS - the app infers a cash gap and lets the user attribute it manually."
+  }
+}

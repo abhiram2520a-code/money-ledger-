@@ -1,8 +1,75 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <!--
+      SMS ingestion. These two are the entire reason the app exists and are the
+      only dangerous permissions it declares. Nothing else is requested: no
+      contacts, no call log, no location, no storage, no phone state.
+
+      Google Play policy note (checked 2026-09-23): READ_SMS and RECEIVE_SMS
+      are restricted, but "SMS-based money management" with the example "apps
+      that track and manage budget" is a listed permitted-use exception on
+      the SMS and Call Log policy, and it survives unchanged into the successor
+      policy effective 2027-01-27. Shipping needs a Permissions Declaration
+      with a video demonstration, not a workaround.
+
+      Do NOT "solve" a rejection by reading bank notifications instead: the
+      Permissions and APIs that Access Sensitive Information policy says
+      verbatim that you may not use alternative methods to derive data
+      attributed to SMS permissions. A NotificationListenerService scraping the
+      same bank messages is the prohibited thing, not the safe fallback.
+    -->
+    <uses-permission android:name="android.permission.RECEIVE_SMS" />
+    <uses-permission android:name="android.permission.READ_SMS" />
+
+    <!--
+      The history import runs as a foreground service so it survives the user
+      switching apps mid-import. dataSync is the correct Android 14+ type for a
+      bounded, user-initiated local data transfer; from Android 15 it is capped
+      at ~6h/24h, which a scan measured in seconds never approaches.
+    -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" />
+
+    <!-- Android 13+: needed to show the import progress notification. Its
+         absence never blocks ingestion. -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+
+    <!--
+      INTERNET exists for exactly one caller: RulesProvider.checkForUpdate(),
+      fetching a newer rules pack from the config server. Nothing else in the
+      app opens a socket, and no message text, transaction, merchant or device
+      identifier is ever sent anywhere - grep android/app/src/main/kotlin and
+      lib/native, there is no HTTP client in the ingestion path at all.
+
+      It is declared here because Flutter only injects INTERNET into the DEBUG
+      and PROFILE manifests, so omitting it would make every rules update fail
+      in release builds only - the worst kind of bug to find later. With the
+      permission present and the server unreachable, checkForUpdate returns
+      AppError.offline, which is a routine result: the bundled assets/rules/
+      pack means parsing, categorisation and reporting are unaffected.
+    -->
+    <uses-permission android:name="android.permission.INTERNET" />
+
     <application
         android:label="ledger"
         android:name="${applicationName}"
-        android:icon="@mipmap/ic_launcher">
+        android:icon="@mipmap/ic_launcher"
+        android:allowBackup="false"
+        android:fullBackupContent="false">
+        <!--
+          allowBackup="false" is NOT a default-cargo-cult setting, it is load
+          bearing. The ledger database is encrypted with a key held in the
+          Android keystore, which is device-bound and NOT part of a backup.
+          Restoring the database onto a new device (or after a factory reset)
+          hands the app a ciphertext it can never decrypt, and every launch
+          crashes on open - a permanent boot loop that no amount of clearing
+          app data from inside the app can fix. Turning backup off is the fix.
+
+          On Android 12+ device-to-device transfer is governed by
+          android:dataExtractionRules instead. Adding that res/xml file is a
+          follow-up for whoever owns android/app/src/main/res.
+        -->
+
         <activity
             android:name=".MainActivity"
             android:exported="true"
@@ -25,6 +92,44 @@
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
         </activity>
+
+        <!--
+          Live SMS capture.
+
+          exported="true" is required - the sender is the system, not this app -
+          and android:permission="android.permission.BROADCAST_SMS" is the
+          hardening that makes that safe: only a component holding that
+          signature-level permission (i.e. the OS) can invoke the receiver, so
+          no other app can forge a transaction into the ledger. This attribute
+          is the non-obvious half; dropping it would leave the ledger writable
+          by any installed app.
+
+          priority is high so the ledger sees the message before a slow
+          third-party SMS app, but SMS_RECEIVED is not an ordered broadcast
+          that can be aborted, so this only affects dispatch order, never
+          whether the user's messaging app receives it.
+
+          enabled="true" is the default state; LedgerPlugin.stopLive() flips
+          the component to disabled so "pause SMS reading" genuinely stops
+          delivery rather than just ignoring it.
+        -->
+        <receiver
+            android:name=".SmsReceiver"
+            android:enabled="true"
+            android:exported="true"
+            android:permission="android.permission.BROADCAST_SMS">
+            <intent-filter android:priority="999">
+                <action android:name="android.provider.Telephony.SMS_RECEIVED" />
+            </intent-filter>
+        </receiver>
+
+        <!-- Historical inbox import. Never started from the background, so the
+             Android 12+ background-start restriction is not in play. -->
+        <service
+            android:name=".BackfillService"
+            android:exported="false"
+            android:foregroundServiceType="dataSync" />
+
         <!-- Don't delete the meta-data below.
              This is used by the Flutter tool to generate GeneratedPluginRegistrant.java -->
         <meta-data
